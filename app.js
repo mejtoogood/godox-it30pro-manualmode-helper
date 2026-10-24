@@ -65,7 +65,7 @@ function init(){
   $('importData').addEventListener('change',importData);
   document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
   render();
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{/* Offline caching unavailable. Calculator remains functional. */})}
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{/* Calculator remains functional if caching is unavailable. */})}
 }
 function changed(){save();render()}
 function writePower(id,step){const p=powerLabel(step).split(' +');$(id).replaceChildren(document.createTextNode(p[0]));if(p[1]){const sm=document.createElement('small');sm.textContent='+'+p[1];$(id).appendChild(document.createTextNode(' '));$(id).appendChild(sm)}}
