@@ -54,3 +54,7 @@ Table view shares ISO, N/W beam, fill compensation and Sekonic calibration with 
 ## Touch behaviour
 
 The app disables browser double-tap and pinch zoom without disabling page scrolling or horizontal/vertical table scrolling. Range sliders retain touch dragging; input fields can be edited normally.
+
+## v1.8 — iOS standalone safe area
+
+Reserve the iPhone status-bar safe area in Home Screen mode and prevent scrolling content from painting behind the translucent status bar. The app remains scrollable and offline-capable.
