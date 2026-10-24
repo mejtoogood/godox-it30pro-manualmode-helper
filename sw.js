@@ -1,5 +1,5 @@
 /* Same-origin asset-only cache: no requests for data or third-party services. */
-const CACHE='flash-meter-v1.0.0';
+const CACHE='flash-meter-v1.1.0';
 const ASSETS=['./','./index.html','./styles.css','./core.mjs','./app.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',evt=>{evt.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',evt=>{evt.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});

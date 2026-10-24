@@ -38,14 +38,17 @@ function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show')
 function init(){
   const isoValues=[100,200,400,800,1600,3200];
   $('isoChips').innerHTML=isoValues.map(v=>`<button type="button" data-iso="${v}" aria-pressed="false">${v}</button>`).join('');
-  $('fillChips').innerHTML=[0,-1,-2,-3,-4].map(v=>`<button type="button" data-fill="${v}" aria-pressed="false">${v===0?'FULL':`−${Math.abs(v)}`}</button>`).join('');
+  $('fillChips').innerHTML=[0,-1,-2,-3,-4].map(v=>`<button type="button" data-fill="${v}" aria-pressed="false">${v===0?'0':`−${Math.abs(v)}`}</button>`).join('');
+  $('apertureSelect').innerHTML=FSTOP_LABELS.map((f,i)=>`<option value="${i}">f/${f}</option>`).join('');
   $('calPower').innerHTML=Array.from({length:22},(_,i)=>`<option value="${i}">${powerLabel(i)}</option>`).join('');
   $('calTenths').innerHTML=Array.from({length:10},(_,i)=>`<option value="${i}">+${(i/10).toFixed(1)} EV</option>`).join('');
   $('calPower').value='6';
   $('isoChips').addEventListener('click',e=>{const v=Number(e.target.closest('[data-iso]')?.dataset.iso);if(v){state.iso=v;changed()}});
   $('fillChips').addEventListener('click',e=>{const v=e.target.closest('[data-fill]')?.dataset.fill;if(v!==undefined){state.fillEV=Number(v);changed()}});
   $('modeControl').addEventListener('click',e=>{const mode=e.target.closest('[data-mode]')?.dataset.mode;if(mode==='N'||mode==='W'){state.mode=mode;changed()}});
-  $('apertureSlider').addEventListener('input',e=>{state.apertureIndex=Number(e.target.value);changed()});
+  $('apertureSelect').addEventListener('change',e=>{state.apertureIndex=Number(e.target.value);changed()});
+  $('apertureDown').addEventListener('click',()=>{state.apertureIndex=clamp(state.apertureIndex-1,0,FSTOP_VALUES.length-1);changed()});
+  $('apertureUp').addEventListener('click',()=>{state.apertureIndex=clamp(state.apertureIndex+1,0,FSTOP_VALUES.length-1);changed()});
   $('distanceSlider').addEventListener('input',e=>{state.distance=Number(e.target.value);changed()});
   $('distanceInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,.1,100)){state.distance=x;changed()}else{render();toast('Distance must be 0.1–100 m.')}});
   $('isoInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,12,25600)){state.iso=x;changed()}else{render();toast('ISO must be between 12 and 25,600.')}});
@@ -61,9 +64,8 @@ function init(){
   $('exportData').addEventListener('click',exportData);
   $('importData').addEventListener('change',importData);
   document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
-  render();updateOfflineBadge();
-  window.addEventListener('online',updateOfflineBadge);window.addEventListener('offline',updateOfflineBadge);
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready.then(updateOfflineBadge)).catch(()=>updateOfflineBadge());navigator.serviceWorker.addEventListener('controllerchange',updateOfflineBadge)}
+  render();
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{/* Offline caching unavailable. Calculator remains functional. */})}
 }
 function changed(){save();render()}
 function writePower(id,step){const p=powerLabel(step).split(' +');$(id).replaceChildren(document.createTextNode(p[0]));if(p[1]){const sm=document.createElement('small');sm.textContent='+'+p[1];$(id).appendChild(document.createTextNode(' '));$(id).appendChild(sm)}}
@@ -72,20 +74,20 @@ function render(){
   const source=resolveGN(s.records,s.mode,s.baseGN,s.wideLossEV);
   const result=requiredPower({gn100:source.gn,iso,aperture:f,distance:s.distance,fillEV:s.fillEV});
   writePower('powerValue',result.step);
-  $('powerDetail').textContent=`f/${label} · ${fmt(s.distance)} m · ${s.mode} beam`;
+  $('powerDetail').textContent=`${s.mode} beam · ${fmt(s.distance)} m · ISO ${s.iso}`;
   const msg=$('powerWarning');msg.hidden=result.status==='ok';
   if(result.status==='too-weak')msg.textContent=`Not enough flash at full power: approximately ${fmtEV(Math.log2(result.required))} more light is needed. Open the aperture, raise ISO, or move closer.`;
   if(result.status==='too-strong')msg.textContent=`Even minimum 1/128 power is approximately ${fmtEV(Math.log2((1/128)/result.required))} brighter than requested. Stop down, move back, or reduce ISO.`;
-  $('gnSummary').textContent=`${fmt(source.gn)} m · ISO 100`;
-  $('flashSummary').textContent=s.fillEV===0?'Full flash':fmtEV(s.fillEV);
+  $('flashSummary').textContent=s.fillEV===0?'Full flash':`${fmtEV(s.fillEV)} fill`;
   $('modelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
   $('isoInput').value=String(s.iso);
   document.querySelectorAll('[data-iso]').forEach(b=>{const on=Number(b.dataset.iso)===iso;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
-  $('apertureSlider').value=String(s.apertureIndex);$('apertureValue').textContent=`f/${label}`;
-  $('distanceSlider').value=String(clamp(s.distance,.5,10));$('distanceInput').value=String(s.distance);$('distanceValue').textContent=fmt(s.distance);
+  $('apertureSelect').value=String(s.apertureIndex);
+  $('apertureDown').disabled=s.apertureIndex===0;
+  $('apertureUp').disabled=s.apertureIndex===FSTOP_VALUES.length-1;
+  $('distanceSlider').value=String(clamp(s.distance,.5,10));$('distanceInput').value=String(s.distance);
   document.querySelectorAll('[data-mode]').forEach(b=>{const on=b.dataset.mode===s.mode;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
   document.querySelectorAll('[data-fill]').forEach(b=>{const on=Number(b.dataset.fill)===s.fillEV;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
-  $('fillValue').textContent=s.fillEV===0?'Full':fmtEV(s.fillEV);
   $('ambientAperture').value=s.ambientAperture??'';
   if(s.ambientAperture){
     const ambientEV=2*Math.log2(s.ambientAperture/f),combined=totalAmbientFlashEV({ambientAperture:s.ambientAperture,shootAperture:f,fillEV:s.fillEV});
@@ -140,9 +142,4 @@ async function importData(e){
     if(!confirm(`Replace settings and ${state.records.length} saved measurement(s) with this backup?`))return;
     state=validateState(data.state);changed();toast(`Imported ${state.records.length} measurements`);
   }catch{toast('Cannot import: invalid JSON backup.')}}
-function updateOfflineBadge(){
-  const root=$('networkLabel');if(!root)return;const controlled=!!navigator.serviceWorker?.controller;
-  root.classList.toggle('offline',controlled);
-  root.querySelector('span:last-child').textContent=!navigator.onLine?'OFFLINE':controlled?'OFFLINE READY':'PREPARING';
-}
 init();
