@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b131c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Flash Meter">
+  <meta name="description" content="Offline manual-flash calculator and calibration log for the Godox iT30Pro and Nikon FE.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Flash Meter · iT30Pro</title>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✳</span><span><strong>FLASH METER</strong><small>GODOX iT30Pro / NIKON FE</small></span></div>
+      <div class="connection" id="networkLabel"><span class="connection-dot"></span><span>Checking offline</span></div>
+    </header>
+    <main>
+      <section class="page active" id="calculatorPage" aria-labelledby="mainTitle">
+        <div class="section-intro"><p class="eyebrow">FIELD CALCULATOR</p><h1 id="mainTitle">Manual flash, calculated.</h1><p>Direct flash · FE sync ≤ 1/125 s</p></div>
+        <section class="result-panel" aria-live="polite" aria-atomic="true">
+          <div class="result-top"><span>SET FLASH POWER TO</span><span id="modelTag" class="pill">ESTIMATE</span></div>
+          <div class="power-value" id="powerValue">1/8</div>
+          <div class="power-sub" id="powerDetail">At your selected aperture and distance</div>
+          <div id="powerWarning" class="warning" hidden></div>
+          <div class="result-footer"><div><small>EFFECTIVE GUIDE NUMBER</small><strong id="gnSummary">15.0 m</strong></div><div><small>FLASH EXPOSURE</small><strong id="flashSummary">0 EV</strong></div></div>
+        </section>
+        <div class="input-section">
+          <div class="control-heading"><label for="isoInput">FILM SPEED</label><span class="muted">ASA / ISO</span></div>
+          <div class="chips" id="isoChips" aria-label="Film ISO presets"></div>
+          <div class="custom-row"><label for="isoInput">Custom ISO</label><input id="isoInput" type="number" min="12" max="25600" step="1" inputmode="numeric" value="400"></div>
+        </div>
+        <div class="input-section">
+          <div class="control-heading"><label for="apertureSlider">APERTURE</label><span class="value-right" id="apertureValue">f/5.6</span></div>
+          <input class="range-slider" id="apertureSlider" aria-label="Aperture in third stops" type="range" min="0" max="27" value="12" step="1">
+          <div class="range-ends"><span>f/1.4</span><span>⅓-stop steps</span><span>f/32</span></div>
+        </div>
+        <div class="input-section">
+          <div class="control-heading"><label for="distanceInput">FLASH-TO-SUBJECT DISTANCE</label><span class="value-right"><span id="distanceValue">2.0</span> m</span></div>
+          <input class="range-slider" id="distanceSlider" aria-label="Flash-to-subject distance in metres" type="range" min="0.5" max="10" step="0.1" value="2">
+          <div class="range-ends"><span>0.5 m</span><span>10 m</span></div>
+          <div class="custom-row"><label for="distanceInput">Exact distance (metres)</label><input type="number" id="distanceInput" inputmode="decimal" min="0.1" max="100" step="0.1" value="2"></div>
+        </div>
+        <div class="input-section">
+          <div class="control-heading"><span>BEAM</span><span class="muted">Physical W / N switch</span></div>
+          <div class="segmented" id="modeControl" role="group" aria-label="Flash beam"><button type="button" class="selected" data-mode="N" aria-pressed="true">N · Normal</button><button type="button" data-mode="W" aria-pressed="false">W · Wide</button></div>
+        </div>
+        <div class="input-section">
+          <div class="control-heading"><span>FLASH CONTRIBUTION</span><span class="value-right" id="fillValue">−1 EV</span></div>
+          <div class="chips fill-chips" id="fillChips" role="group" aria-label="Relative flash exposure"></div>
+          <p class="help-text">0 EV = full flash exposure in isolation. Negative values give weaker fill. Ambient light adds to flash exposure.</p>
+        </div>
+        <section class="secondary-card" id="ambientCard">
+          <div class="card-heading"><span><span class="icon-small">◐</span> AMBIENT CHECK</span><span class="optional-tag">OPTIONAL</span></div>
+          <p>Enter the Sekonic's ambient aperture at the <strong>same shutter speed</strong> as your FE.</p>
+          <div class="ambient-controls"><label for="ambientAperture">Meter reads</label><div class="inline-input"><span>f/</span><input id="ambientAperture" type="number" step="0.1" min="0.7" max="90" inputmode="decimal" placeholder="e.g. 5.6"></div><button type="button" class="text-button" id="clearAmbient">Clear</button></div>
+          <p class="ambient-result" id="ambientSummary">Ambient contribution isn't included until you enter a reading.</p>
+        </section>
+      </section>
+
+      <section class="page" id="rangePage" aria-labelledby="rangeTitle">
+        <div class="section-intro"><p class="eyebrow">REVERSE CALCULATOR</p><h1 id="rangeTitle">How far will it reach?</h1><p>Uses the ISO, aperture, beam and fill target from Calculator.</p></div>
+        <section class="result-panel range-result"><div class="result-top"><span>SUBJECT DISTANCE</span><span class="pill" id="rangeModelTag">ESTIMATE</span></div><div class="power-value" id="rangeValue">2.0 <span class="power-unit">m</span></div><div class="power-sub">Distance giving the selected flash contribution</div><div class="result-footer"><div><small>FLASH POWER</small><strong id="rangePowerLabel">1/8</strong></div><div><small>SELECTED APERTURE</small><strong id="rangeAperture">f/5.6</strong></div></div></section>
+        <div class="input-section"><div class="control-heading"><label for="rangePower">MANUAL POWER SETTING</label><span id="rangePowerValue" class="value-right">1/8</span></div><input class="range-slider" type="range" id="rangePower" min="0" max="21" step="1" value="9"><div class="range-ends"><span>1/1</span><span>⅓-stop steps</span><span>1/128</span></div></div>
+        <div class="secondary-card"><div class="card-heading">PRACTICAL NOTES</div><p>Distance is from the flash head, not the camera's film plane. The estimate assumes direct, unobstructed flash, approximately inverse-square falloff, and sufficient recycle time.</p><p>W mode widens coverage but may reduce on-axis intensity. Calibration can replace the preliminary estimate.</p></div>
+      </section>
+
+      <section class="page" id="calibrationPage" aria-labelledby="calTitle">
+        <div class="section-intro"><p class="eyebrow">SEKONIC L-308X</p><h1 id="calTitle">Calibrate your flash.</h1><p>Incident flash readings improve both normal and wide-beam estimates.</p></div>
+        <div class="cal-stats"><div class="stat-card"><small>N · NORMAL</small><strong id="normalCalGN">GN 15.0</strong><span id="normalCalSource">Factory estimate</span></div><div class="stat-card"><small>W · WIDE</small><strong id="wideCalGN">GN 10.6</strong><span id="wideCalSource">Provisional</span></div></div>
+        <form id="calibrationForm" class="form-card">
+          <div class="card-heading">ADD A MEASUREMENT</div>
+          <div class="form-grid">
+            <label>Beam<select id="calMode"><option value="N">N · Normal</option><option value="W">W · Wide</option></select></label>
+            <label>Film ISO<select id="calISO"><option>100</option><option>200</option><option selected>400</option><option>800</option><option>1600</option></select></label>
+            <label>Distance (m)<input id="calDistance" type="number" inputmode="decimal" min="0.1" max="100" step="0.1" value="2.0" required></label>
+            <label>Flash power<select id="calPower"></select></label>
+            <label>Sekonic aperture (f/)<input id="calAperture" type="number" inputmode="decimal" min="0.7" max="90" step="0.1" placeholder="e.g. 8" required></label>
+            <label>Extra tenths (EV)<select id="calTenths"></select></label>
+          </div>
+          <p class="help-text">Example: Sekonic displays f/5.6 with a small 3 → enter 5.6 and +0.3. Use cordless flash mode, incident dome towards flash, and keep ambient negligible.</p>
+          <button type="submit" class="primary-button">Save measurement <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="records-heading"><div><strong>MEASUREMENTS</strong><span id="recordCount">0 saved</span></div><button id="clearRecords" type="button" class="text-button">Clear all</button></div>
+        <div id="recordList" class="record-list"><p class="empty">No measurements yet. Calculations use the published GN and a provisional W-mode offset.</p></div>
+        <div class="secondary-card calibration-notes"><div class="card-heading">HOW CALIBRATION WORKS</div><p>Each reading is normalized to ISO 100 at full power to estimate a guide number. The app uses the median of readings for each beam, resisting isolated outliers. It does not model nonlinearity with distance or power.</p><p>Only calibrated modes are labelled measured. Until you measure W mode, its loss relative to N remains an assumption.</p></div>
+      </section>
+
+      <section class="page" id="settingsPage" aria-labelledby="settingsTitle">
+        <div class="section-intro"><p class="eyebrow">APP SETTINGS</p><h1 id="settingsTitle">Model &amp; data.</h1><p>Everything stays on this device unless you export it.</p></div>
+        <div class="form-card settings-card"><div class="card-heading">THEORETICAL MODEL</div><label for="baseGN">N-mode reference guide number (ISO 100, full power, metres)</label><input id="baseGN" type="number" min="1" max="100" step="0.1" value="15" inputmode="decimal"><div class="control-heading wide-adjust"><label for="wideLoss">Provisional W-mode light loss</label><strong id="wideLossValue">1.0 EV</strong></div><input id="wideLoss" class="range-slider" type="range" min="0" max="3" step="0.333333333333" value="1"><div class="range-ends"><span>0 EV</span><span>3 EV</span></div><p class="help-text">Godox publishes approximately GN15, but no fixed W/N difference. These values apply only where you haven't supplied measurements.</p></div>
+        <div class="form-card settings-card"><div class="card-heading">YOUR DATA</div><p>Calibration records and controls are saved locally. Back up your measurements: iOS can clear website storage.</p><div class="stack-buttons"><button type="button" id="exportData" class="primary-button secondary-action">Export JSON backup ↗</button><label class="file-button" for="importData">Import JSON backup<input type="file" id="importData" accept="application/json,.json" hidden></label><button type="button" id="resetSettings" class="danger-link">Restore default model &amp; controls</button></div></div>
+        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">Offline PWA · No account · No analytics · v1.0</p></div>
+      </section>
+    </main>
+    <nav class="bottom-nav" aria-label="Main navigation"><button class="nav-button selected" type="button" data-page="calculator" aria-current="page"><span class="nav-symbol">◉</span><span>Power</span></button><button class="nav-button" type="button" data-page="range"><span class="nav-symbol">↗</span><span>Range</span></button><button class="nav-button" type="button" data-page="calibration"><span class="nav-symbol">⊕</span><span>Calibrate</span></button><button class="nav-button" type="button" data-page="settings"><span class="nav-symbol">⚙</span><span>Settings</span></button></nav>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

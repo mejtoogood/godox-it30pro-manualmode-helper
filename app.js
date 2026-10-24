@@ -1,0 +1,148 @@
+import {DEFAULT_GN,FSTOP_LABELS,FSTOP_VALUES,clamp,powerFraction,powerLabel,requiredPower,rangeFor,normalizedGN,resolveGN,totalAmbientFlashEV} from './core.mjs';
+
+const STORE='flash-meter-pwa-v1';
+const defaults={iso:400,apertureIndex:12,distance:2,mode:'N',fillEV:-1,rangeStep:9,ambientAperture:null,baseGN:DEFAULT_GN,wideLossEV:1,records:[]};
+const $=id=>document.getElementById(id);
+const validNumber=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
+const fmt=(n,d=1)=>Number(n).toFixed(d);
+const fmtEV=n=>`${n>=0?'+':'−'}${Math.abs(n).toFixed(1)} EV`;
+let stored;
+try{stored=JSON.parse(localStorage.getItem(STORE))}catch{stored=null}
+let state=validateState(stored);
+let toastTimeout;
+
+function validateRecord(r){
+  return r && (r.mode==='N'||r.mode==='W') && validNumber(r.iso,12,25600) && validNumber(r.distance,.1,100)
+    && Number.isInteger(r.powerStep) && r.powerStep>=0 && r.powerStep<=21
+    && validNumber(r.aperture,.7,90) && Number.isInteger(r.tenths) && r.tenths>=0 && r.tenths<=9;
+}
+function validateState(input){
+  const s={...defaults,records:[]};
+  if(!input||typeof input!=='object')return s;
+  if(validNumber(input.iso,12,25600))s.iso=input.iso;
+  if(Number.isInteger(input.apertureIndex)&&input.apertureIndex>=0&&input.apertureIndex<FSTOP_VALUES.length)s.apertureIndex=input.apertureIndex;
+  if(validNumber(input.distance,.1,100))s.distance=input.distance;
+  if(input.mode==='W'||input.mode==='N')s.mode=input.mode;
+  if(Number.isInteger(input.fillEV)&&input.fillEV<=0&&input.fillEV>=-4)s.fillEV=input.fillEV;
+  if(Number.isInteger(input.rangeStep)&&input.rangeStep>=0&&input.rangeStep<=21)s.rangeStep=input.rangeStep;
+  if(input.ambientAperture===null||validNumber(input.ambientAperture,.7,90))s.ambientAperture=input.ambientAperture;
+  if(validNumber(input.baseGN,1,100))s.baseGN=input.baseGN;
+  if(validNumber(input.wideLossEV,0,3.01))s.wideLossEV=input.wideLossEV;
+  if(Array.isArray(input.records))s.records=input.records.filter(validateRecord).slice(0,1000).map(r=>({
+    id:typeof r.id==='string'?r.id.slice(0,64):crypto.randomUUID(),mode:r.mode,iso:r.iso,distance:r.distance,powerStep:r.powerStep,aperture:r.aperture,tenths:r.tenths,createdAt:typeof r.createdAt==='string'?r.createdAt.slice(0,40):new Date().toISOString()
+  }));
+  return s;
+}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch{toast('Local storage is unavailable; export measurements to keep them.')}}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('show'),3500)}
+function init(){
+  const isoValues=[100,200,400,800,1600,3200];
+  $('isoChips').innerHTML=isoValues.map(v=>`<button type="button" data-iso="${v}" aria-pressed="false">${v}</button>`).join('');
+  $('fillChips').innerHTML=[0,-1,-2,-3,-4].map(v=>`<button type="button" data-fill="${v}" aria-pressed="false">${v===0?'FULL':`−${Math.abs(v)}`}</button>`).join('');
+  $('calPower').innerHTML=Array.from({length:22},(_,i)=>`<option value="${i}">${powerLabel(i)}</option>`).join('');
+  $('calTenths').innerHTML=Array.from({length:10},(_,i)=>`<option value="${i}">+${(i/10).toFixed(1)} EV</option>`).join('');
+  $('calPower').value='6';
+  $('isoChips').addEventListener('click',e=>{const v=Number(e.target.closest('[data-iso]')?.dataset.iso);if(v){state.iso=v;changed()}});
+  $('fillChips').addEventListener('click',e=>{const v=e.target.closest('[data-fill]')?.dataset.fill;if(v!==undefined){state.fillEV=Number(v);changed()}});
+  $('modeControl').addEventListener('click',e=>{const mode=e.target.closest('[data-mode]')?.dataset.mode;if(mode==='N'||mode==='W'){state.mode=mode;changed()}});
+  $('apertureSlider').addEventListener('input',e=>{state.apertureIndex=Number(e.target.value);changed()});
+  $('distanceSlider').addEventListener('input',e=>{state.distance=Number(e.target.value);changed()});
+  $('distanceInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,.1,100)){state.distance=x;changed()}else{render();toast('Distance must be 0.1–100 m.')}});
+  $('isoInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,12,25600)){state.iso=x;changed()}else{render();toast('ISO must be between 12 and 25,600.')}});
+  $('ambientAperture').addEventListener('change',e=>{const v=e.target.value.trim();const x=Number(v);if(!v){state.ambientAperture=null;changed()}else if(validNumber(x,.7,90)){state.ambientAperture=x;changed()}else{render();toast('Enter an ambient aperture between f/0.7 and f/90.')}});
+  $('clearAmbient').addEventListener('click',()=>{state.ambientAperture=null;changed()});
+  $('rangePower').addEventListener('input',e=>{state.rangeStep=Number(e.target.value);changed()});
+  $('baseGN').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,1,100)){state.baseGN=x;changed()}else{render();toast('Guide number must be between 1 and 100.')}});
+  $('wideLoss').addEventListener('input',e=>{state.wideLossEV=clamp(Math.round(Number(e.target.value)*3)/3,0,3);changed()});
+  $('calibrationForm').addEventListener('submit',submitCalibration);
+  $('recordList').addEventListener('click',e=>{const id=e.target.closest('[data-delete]')?.dataset.delete;if(!id)return;state.records=state.records.filter(r=>r.id!==id);changed();toast('Measurement deleted')});
+  $('clearRecords').addEventListener('click',()=>{if(state.records.length&&confirm(`Delete all ${state.records.length} calibration measurements?`)){state.records=[];changed();toast('All measurements cleared')}});
+  $('resetSettings').addEventListener('click',()=>{if(confirm('Reset model and calculator controls? Saved calibration records will be kept.')){state={...defaults,records:state.records};changed();toast('Defaults restored')}});
+  $('exportData').addEventListener('click',exportData);
+  $('importData').addEventListener('change',importData);
+  document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>goPage(b.dataset.page)));
+  render();updateOfflineBadge();
+  window.addEventListener('online',updateOfflineBadge);window.addEventListener('offline',updateOfflineBadge);
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready.then(updateOfflineBadge)).catch(()=>updateOfflineBadge());navigator.serviceWorker.addEventListener('controllerchange',updateOfflineBadge)}
+}
+function changed(){save();render()}
+function writePower(id,step){const p=powerLabel(step).split(' +');$(id).replaceChildren(document.createTextNode(p[0]));if(p[1]){const sm=document.createElement('small');sm.textContent='+'+p[1];$(id).appendChild(document.createTextNode(' '));$(id).appendChild(sm)}}
+function render(){
+  const s=state,iso=s.iso,f=FSTOP_VALUES[s.apertureIndex],label=FSTOP_LABELS[s.apertureIndex];
+  const source=resolveGN(s.records,s.mode,s.baseGN,s.wideLossEV);
+  const result=requiredPower({gn100:source.gn,iso,aperture:f,distance:s.distance,fillEV:s.fillEV});
+  writePower('powerValue',result.step);
+  $('powerDetail').textContent=`f/${label} · ${fmt(s.distance)} m · ${s.mode} beam`;
+  const msg=$('powerWarning');msg.hidden=result.status==='ok';
+  if(result.status==='too-weak')msg.textContent=`Not enough flash at full power: approximately ${fmtEV(Math.log2(result.required))} more light is needed. Open the aperture, raise ISO, or move closer.`;
+  if(result.status==='too-strong')msg.textContent=`Even minimum 1/128 power is approximately ${fmtEV(Math.log2((1/128)/result.required))} brighter than requested. Stop down, move back, or reduce ISO.`;
+  $('gnSummary').textContent=`${fmt(source.gn)} m · ISO 100`;
+  $('flashSummary').textContent=s.fillEV===0?'Full flash':fmtEV(s.fillEV);
+  $('modelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
+  $('isoInput').value=String(s.iso);
+  document.querySelectorAll('[data-iso]').forEach(b=>{const on=Number(b.dataset.iso)===iso;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
+  $('apertureSlider').value=String(s.apertureIndex);$('apertureValue').textContent=`f/${label}`;
+  $('distanceSlider').value=String(clamp(s.distance,.5,10));$('distanceInput').value=String(s.distance);$('distanceValue').textContent=fmt(s.distance);
+  document.querySelectorAll('[data-mode]').forEach(b=>{const on=b.dataset.mode===s.mode;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
+  document.querySelectorAll('[data-fill]').forEach(b=>{const on=Number(b.dataset.fill)===s.fillEV;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
+  $('fillValue').textContent=s.fillEV===0?'Full':fmtEV(s.fillEV);
+  $('ambientAperture').value=s.ambientAperture??'';
+  if(s.ambientAperture){
+    const ambientEV=2*Math.log2(s.ambientAperture/f),combined=totalAmbientFlashEV({ambientAperture:s.ambientAperture,shootAperture:f,fillEV:s.fillEV});
+    $('ambientSummary').textContent=`Ambient ${fmtEV(ambientEV)} + flash ${fmtEV(s.fillEV)} → combined ${fmtEV(combined)} relative to nominal exposure, if both illuminate the metered subject.`;
+  }else $('ambientSummary').textContent="Ambient contribution isn't included until you enter a reading.";
+  $('rangePower').value=String(s.rangeStep);$('rangePowerValue').textContent=powerLabel(s.rangeStep);$('rangePowerLabel').textContent=powerLabel(s.rangeStep);
+  $('rangeAperture').textContent=`f/${label}`;
+  const range=rangeFor({gn100:source.gn,iso,aperture:f,fillEV:s.fillEV,powerStep:s.rangeStep});
+  $('rangeValue').replaceChildren(document.createTextNode(fmt(range,2)+' '));const unit=document.createElement('span');unit.className='power-unit';unit.textContent='m';$('rangeValue').appendChild(unit);
+  $('rangeModelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
+  const n=resolveGN(s.records,'N',s.baseGN,s.wideLossEV),w=resolveGN(s.records,'W',s.baseGN,s.wideLossEV);
+  $('normalCalGN').textContent=`GN ${fmt(n.gn)}`;$('wideCalGN').textContent=`GN ${fmt(w.gn)}`;
+  $('normalCalSource').textContent=n.source==='measured'?`${n.samples} measured sample${n.samples===1?'':'s'}`:'Manufacturer estimate';
+  $('wideCalSource').textContent=w.source==='measured'?`${w.samples} measured sample${w.samples===1?'':'s'}`:w.source==='derived'?'Provisional from N reading':'Provisional W correction';
+  $('recordCount').textContent=`${s.records.length} saved`;
+  $('clearRecords').disabled=s.records.length===0;
+  renderRecords();$('baseGN').value=String(s.baseGN);$('wideLoss').value=String(s.wideLossEV);$('wideLossValue').textContent=`${fmt(s.wideLossEV)} EV`;
+}
+function renderRecords(){
+  const container=$('recordList');container.replaceChildren();
+  if(!state.records.length){const p=document.createElement('p');p.className='empty';p.textContent='No measurements yet. Calculations use the manufacturer GN and a provisional W-mode offset.';container.append(p);return}
+  for(const r of [...state.records].reverse()){
+    const row=document.createElement('div');row.className='record';
+    const title=document.createElement('strong');title.textContent=`${r.mode} · ${powerLabel(r.powerStep)} · ${fmt(r.distance)} m`;
+    const details=document.createElement('small');details.textContent=`ISO ${r.iso} · f/${r.aperture}${r.tenths?' +'+(r.tenths/10).toFixed(1):''} · ${r.createdAt.slice(0,10)}`;
+    const gn=document.createElement('em');gn.textContent=`GN ${fmt(normalizedGN(r))} (normalized)`;
+    const del=document.createElement('button');del.type='button';del.textContent='Delete';del.dataset.delete=r.id;del.setAttribute('aria-label','Delete measurement');
+    row.append(title,details,gn,del);container.append(row);
+  }
+}
+function submitCalibration(e){
+  e.preventDefault();
+  const record={id:crypto.randomUUID(),mode:$('calMode').value,iso:Number($('calISO').value),distance:Number($('calDistance').value),powerStep:Number($('calPower').value),aperture:Number($('calAperture').value),tenths:Number($('calTenths').value),createdAt:new Date().toISOString()};
+  if(!validateRecord(record)){toast('Please check the calibration values.');return}
+  if(state.records.length>=1000){toast('Maximum 1,000 records. Export then remove old records.');return}
+  state.records.push(record);changed();$('calAperture').value='';$('calTenths').value='0';toast(`Saved ${record.mode} reading · GN ${fmt(normalizedGN(record))}`);
+}
+function goPage(name){
+  for(const el of document.querySelectorAll('.page'))el.classList.toggle('active',el.id===`${name}Page`);
+  for(const b of document.querySelectorAll('[data-page]')){const selected=b.dataset.page===name;b.classList.toggle('selected',selected);if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function exportData(){
+  const data={application:'flash-meter-it30pro',version:1,exportedAt:new Date().toISOString(),state};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download=`godox-flash-calibration-${new Date().toISOString().slice(0,10)}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);toast('JSON backup exported');
+}
+async function importData(e){
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  if(file.size>1024*1024){toast('Backup file too large.');return}
+  try{const data=JSON.parse(await file.text());if(data.application!=='flash-meter-it30pro'||data.version!==1||!data.state||!Array.isArray(data.state.records))throw Error('Invalid backup format');
+    if(!confirm(`Replace settings and ${state.records.length} saved measurement(s) with this backup?`))return;
+    state=validateState(data.state);changed();toast(`Imported ${state.records.length} measurements`);
+  }catch{toast('Cannot import: invalid JSON backup.')}}
+function updateOfflineBadge(){
+  const root=$('networkLabel');if(!root)return;const controlled=!!navigator.serviceWorker?.controller;
+  root.classList.toggle('offline',controlled);
+  root.querySelector('span:last-child').textContent=!navigator.onLine?'OFFLINE':controlled?'OFFLINE READY':'PREPARING';
+}
+init();
