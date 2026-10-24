@@ -23,7 +23,7 @@ Manual power is rounded to the nearest 1/3 EV supported step, between full power
 
 To calibrate, use a Sekonic L-308X in **cordless flash mode**, the incident dome towards the flash, and keep ambient exposure negligible. For each measurement record beam N/W, ISO, head-to-subject distance, selected flash power, and the Sekonic f-number including its tenths-of-a-stop readout. The app normalises measurements to ISO 100 and full power, then takes the median in log (stop) space for each mode. It does **not** attempt to fit nonlinearity in distance, power or illumination coverage.
 
-**Ambient check:** Optional reading of incident ambient aperture at the same shutter speed as the FE. It adds *relative incident exposures* at the metered subject; it cannot infer reflected-light background exposure. The FE's conventional sync speed is **1/125 s or slower**, with no TTL communication from this app.
+The FE's conventional flash sync speed is **1/125 s or slower**, with no TTL communication from this app.
 
 ## Data and privacy
 

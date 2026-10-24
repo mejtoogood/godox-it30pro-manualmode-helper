@@ -1,7 +1,7 @@
-import {DEFAULT_GN,FSTOP_LABELS,FSTOP_VALUES,clamp,powerFraction,powerLabel,requiredPower,rangeFor,normalizedGN,resolveGN} from './core.mjs';
+import {DEFAULT_GN,FSTOP_LABELS,FSTOP_VALUES,clamp,powerFraction,powerLabel,requiredPower,normalizedGN,resolveGN} from './core.mjs';
 
 const STORE='flash-meter-pwa-v1';
-const defaults={iso:400,apertureIndex:12,distance:2,mode:'N',fillEV:-1,rangeStep:9,baseGN:DEFAULT_GN,wideLossEV:1,records:[]};
+const defaults={iso:400,apertureIndex:12,distance:2,mode:'N',fillEV:-1,baseGN:DEFAULT_GN,wideLossEV:1,records:[]};
 const $=id=>document.getElementById(id);
 const validNumber=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 const fmt=(n,d=1)=>Number(n).toFixed(d);
@@ -24,7 +24,6 @@ function validateState(input){
   if(validNumber(input.distance,.1,100))s.distance=input.distance;
   if(input.mode==='W'||input.mode==='N')s.mode=input.mode;
   if(Number.isInteger(input.fillEV)&&input.fillEV<=0&&input.fillEV>=-4)s.fillEV=input.fillEV;
-  if(Number.isInteger(input.rangeStep)&&input.rangeStep>=0&&input.rangeStep<=21)s.rangeStep=input.rangeStep;
   if(validNumber(input.baseGN,1,100))s.baseGN=input.baseGN;
   if(validNumber(input.wideLossEV,0,3.01))s.wideLossEV=input.wideLossEV;
   if(Array.isArray(input.records))s.records=input.records.filter(validateRecord).slice(0,1000).map(r=>({
@@ -50,7 +49,6 @@ function init(){
   $('isoInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,12,25600)){state.iso=x;changed()}else{render();toast('ISO must be between 12 and 25,600.')}});
   $('isoDown').addEventListener('click',()=>{state.iso=Math.max(12,Math.round(state.iso/2));changed()});
   $('isoUp').addEventListener('click',()=>{state.iso=Math.min(25600,state.iso*2);changed()});
-  $('rangePower').addEventListener('input',e=>{state.rangeStep=Number(e.target.value);changed()});
   $('baseGN').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,1,100)){state.baseGN=x;changed()}else{render();toast('Guide number must be between 1 and 100.')}});
   $('wideLoss').addEventListener('input',e=>{state.wideLossEV=clamp(Math.round(Number(e.target.value)*3)/3,0,3);changed()});
   $('calibrationForm').addEventListener('submit',submitCalibration);
@@ -66,14 +64,14 @@ function init(){
 function changed(){save();render()}
 function writePower(id,step){const p=powerLabel(step).split(' +');$(id).replaceChildren(document.createTextNode(p[0]));if(p[1]){const sm=document.createElement('small');sm.textContent='+'+p[1];$(id).appendChild(document.createTextNode(' '));$(id).appendChild(sm)}}
 function render(){
-  const s=state,iso=s.iso,f=FSTOP_VALUES[s.apertureIndex],label=FSTOP_LABELS[s.apertureIndex];
+  const s=state,iso=s.iso,f=FSTOP_VALUES[s.apertureIndex];
   const source=resolveGN(s.records,s.mode,s.baseGN,s.wideLossEV);
   const result=requiredPower({gn100:source.gn,iso,aperture:f,distance:s.distance,fillEV:s.fillEV});
   writePower('powerValue',result.step);
   $('powerDetail').textContent=`${s.mode} beam · ${fmt(s.distance)} m · ISO ${s.iso}`;
   const msg=$('powerWarning');msg.hidden=result.status==='ok';
-  if(result.status==='too-weak')msg.textContent=`Not enough flash at full power: approximately ${fmtEV(Math.log2(result.required))} more light is needed. Open the aperture, raise ISO, or move closer.`;
-  if(result.status==='too-strong')msg.textContent=`Even minimum 1/128 power is approximately ${fmtEV(Math.log2((1/128)/result.required))} brighter than requested. Stop down, move back, or reduce ISO.`;
+  if(result.status==='too-weak')msg.textContent=`Insufficient flash · ${fmtEV(Math.log2(result.required))} needed`;
+  if(result.status==='too-strong')msg.textContent=`Excess flash · −${(Math.log2((1/128)/result.required)).toFixed(1)} EV needed`;
   $('flashSummary').textContent=s.fillEV===0?'Full flash':`${fmtEV(s.fillEV)} fill`;
   $('modelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
   $('isoInput').value=String(s.iso);
@@ -85,11 +83,6 @@ function render(){
   $('distanceSlider').value=String(clamp(s.distance,.5,10));$('distanceInput').value=String(s.distance);
   document.querySelectorAll('[data-mode]').forEach(b=>{const on=b.dataset.mode===s.mode;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
   document.querySelectorAll('[data-fill]').forEach(b=>{const on=Number(b.dataset.fill)===s.fillEV;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
-  $('rangePower').value=String(s.rangeStep);$('rangePowerValue').textContent=powerLabel(s.rangeStep);$('rangePowerLabel').textContent=powerLabel(s.rangeStep);
-  $('rangeAperture').textContent=`f/${label}`;
-  const range=rangeFor({gn100:source.gn,iso,aperture:f,fillEV:s.fillEV,powerStep:s.rangeStep});
-  $('rangeValue').replaceChildren(document.createTextNode(fmt(range,2)+' '));const unit=document.createElement('span');unit.className='power-unit';unit.textContent='m';$('rangeValue').appendChild(unit);
-  $('rangeModelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
   const n=resolveGN(s.records,'N',s.baseGN,s.wideLossEV),w=resolveGN(s.records,'W',s.baseGN,s.wideLossEV);
   $('normalCalGN').textContent=`GN ${fmt(n.gn)}`;$('wideCalGN').textContent=`GN ${fmt(w.gn)}`;
   $('normalCalSource').textContent=n.source==='measured'?`${n.samples} measured sample${n.samples===1?'':'s'}`:'Manufacturer estimate';
