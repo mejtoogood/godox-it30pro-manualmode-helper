@@ -101,3 +101,25 @@
 .power-cell.out-of-range{font-size:10px;color:#dcaa8d;font-weight:650;}
 .power-cell:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;position:relative;z-index:1;}
 @media(max-width:360px){.table-controls{grid-template-columns:minmax(0,.65fr) minmax(0,1.35fr);gap:7px}.table-hint{font-size:9px}}
+
+
+/* v1.7 — fixed-scale touch UI. Pan/scroll remains available, including
+   horizontal/vertical scrolling inside the power table. No double-tap or
+   two-finger page zoom. */
+html, body {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+button, .file-button, .power-table td, .power-table th {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Dragging a range control should adjust it, not initiate page panning. */
+input[type="range"] { touch-action: none; }
+/* Retain regular two-axis panning in the reference matrix. */
+.table-viewport { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+/* iOS otherwise zooms the page when a form field below 16px receives focus. */
+.form-grid input, .form-grid select, .settings-card input[type="number"], .settings-card select { font-size: 16px; }

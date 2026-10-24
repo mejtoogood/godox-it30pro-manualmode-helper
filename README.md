@@ -50,3 +50,7 @@ node --test test-core.mjs
 ### Power reference table
 
 Table view shares ISO, N/W beam, fill compensation and Sekonic calibration with Power. Full-stop aperture columns plus the current selected aperture; distance rows extend to the full-power guide-number range at the widest aperture, include the exact current distance, and highlight its aperture/distance intersection. Tap a cell to transfer its aperture and distance to the Power calculator.
+
+## Touch behaviour
+
+The app disables browser double-tap and pinch zoom without disabling page scrolling or horizontal/vertical table scrolling. Range sliders retain touch dragging; input fields can be edited normally.
