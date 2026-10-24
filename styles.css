@@ -142,3 +142,9 @@ input[type="range"] { touch-action: none; }
     max-height: calc(100dvh - 255px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* v1.9: clear iOS Home Screen's translucent status-bar fade on every tab.
+   The extra clearance is standalone-only; normal Safari remains compact. */
+@media (display-mode: standalone) {
+  .shell { padding-top: calc(38px + env(safe-area-inset-top, 0px)); }
+}
