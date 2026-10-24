@@ -148,3 +148,46 @@ input[type="range"] { touch-action: none; }
 @media (display-mode: standalone) {
   .shell { padding-top: calc(38px + env(safe-area-inset-top, 0px)); }
 }
+
+/* v2.0: Avoid iOS 26 cold-launch position:fixed footer viewport bug.
+   Use a 100vh-height flex app only in installed/standalone mode.
+   Main owns page scrolling, and nav stays as an in-flow flex child. */
+html.standalone-app, html.standalone-app body {
+  height: 100%;
+  overflow: hidden;
+}
+html.standalone-app .shell {
+  --nav-gutter: 22px;
+  height: 100vh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: calc(38px + env(safe-area-inset-top, 0px));
+  padding-bottom: 0;
+}
+html.standalone-app .shell > main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+html.standalone-app .bottom-nav {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  max-width: none;
+  margin: 0 calc(-1 * var(--nav-gutter));
+}
+@media (max-width: 370px) {
+  html.standalone-app .shell { --nav-gutter: 14px; }
+}
+@media (max-width: 360px) {
+  html.standalone-app .shell { --nav-gutter: 13px; }
+}

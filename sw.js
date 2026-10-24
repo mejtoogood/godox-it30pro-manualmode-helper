@@ -1,5 +1,5 @@
-/* v1.9: network-first updates, with offline fallbacks; local calibration data untouched. */
-const CACHE='flash-meter-v1.9.0';
+/* v2.0: network-first updates, with offline fallbacks; local calibration data untouched. */
+const CACHE='flash-meter-v2.0.0';
 const ASSETS=['./','./index.html','./styles.css?v=1.9.0','./core.mjs','./app.js?v=1.8.0','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 const scopePath=new URL(self.registration.scope).pathname;
 self.addEventListener('install',event=>{

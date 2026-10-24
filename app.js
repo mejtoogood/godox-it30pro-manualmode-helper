@@ -191,7 +191,11 @@ function goPage(name){
   for(const el of document.querySelectorAll('.page'))el.classList.toggle('active',el.id===`${name}Page`);
   for(const b of document.querySelectorAll('[data-page]')){const selected=b.dataset.page===name;b.classList.toggle('selected',selected);if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')}
   if(name==='table'){renderTable();requestAnimationFrame(alignTableToCurrent)}
-  window.scrollTo({top:0,behavior:'instant'});
+  if (document.documentElement.classList.contains('standalone-app')) {
+    document.querySelector('.shell > main')?.scrollTo({top:0,behavior:'instant'});
+  } else {
+    window.scrollTo({top:0,behavior:'instant'});
+  }
 }
 function exportData(){
   const data={application:'flash-meter-it30pro',version:1,exportedAt:new Date().toISOString(),state};

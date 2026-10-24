@@ -11,7 +11,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=1.9.0">
+  <script>if (navigator.standalone === true || matchMedia("(display-mode: standalone)").matches) document.documentElement.classList.add("standalone-app");</script>
+  <link rel="stylesheet" href="./styles.css?v=2.0.0">
   <title>Flash Meter · iT30Pro</title>
 </head>
 <body>
@@ -114,6 +115,6 @@
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <script type="module" src="./app.js?v=1.8.0"></script>
+  <script type="module" src="./app.js?v=2.0.0"></script>
 </body>
 </html>
