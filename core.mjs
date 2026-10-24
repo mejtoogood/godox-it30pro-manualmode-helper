@@ -44,3 +44,23 @@ export function resolveGN(records,mode,baseGN=DEFAULT_GN,wideLossEV=1){
   if(mode==='N')return {gn:gnN,source:nCal===null?'manufacturer':'measured',samples:records.filter(r=>r.mode==='N').length};
   return {gn:gnN*Math.pow(2,-wideLossEV/2),source:nCal===null?'provisional':'derived',samples:0};
 }
+
+// Reference table: cover the usable full-power range at the widest listed aperture.
+// One/two/nice-fraction distance steps, with the exact current distance included.
+export function tableDistances(maxRange,selectedDistance){
+  if(!Number.isFinite(maxRange)||maxRange<=0)throw new RangeError('Invalid range');
+  const limit=Math.max(0.5,maxRange,Number.isFinite(selectedDistance)?selectedDistance:0);
+  const values=[0.5];
+  const steps=[1,1.25,1.5,1.75,2,2.5,3,3.5,4,4.5,5,6,7,8,9];
+  for(let decade=1;decade<=100000&&values[values.length-1]<limit;decade*=10){
+    for(const multiplier of steps){
+      const d=multiplier*decade;
+      if(d>0.5&&d>values[values.length-1])values.push(d);
+      if(d>=limit)break;
+    }
+  }
+  if(Number.isFinite(selectedDistance)&&selectedDistance>=0.1&&selectedDistance<=10000){
+    if(!values.some(d=>Math.abs(d-selectedDistance)<1e-8))values.push(selectedDistance);
+  }
+  return values.sort((a,b)=>a-b);
+}
