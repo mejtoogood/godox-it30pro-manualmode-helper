@@ -58,3 +58,7 @@ The app disables browser double-tap and pinch zoom without disabling page scroll
 ## v1.8 — iOS standalone safe area
 
 Reserve the iPhone status-bar safe area in Home Screen mode and prevent scrolling content from painting behind the translucent status bar. The app remains scrollable and offline-capable.
+
+## v2.1 guide-number workflow
+
+The N and W guide numbers are independent editable ISO-100, full-power reference values. New measurements only generate GN estimates; they never automatically change the active values. Explicitly apply an estimate using the beam's Use button. Old saved states and v1 JSON backups migrate their previously effective values. Clearing measurements and resetting N/W guide numbers remain independent. The table has a synchronized ISO menu and tapping a cell keeps the table open.

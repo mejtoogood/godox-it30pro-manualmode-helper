@@ -12,7 +12,7 @@
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <script>if (navigator.standalone === true || matchMedia("(display-mode: standalone)").matches) document.documentElement.classList.add("standalone-app");</script>
-  <link rel="stylesheet" href="./styles.css?v=2.0.0">
+  <link rel="stylesheet" href="./styles.css?v=2.1.0">
   <title>Flash Meter · iT30Pro</title>
 </head>
 <body>
@@ -60,7 +60,7 @@
 
       <section class="page" id="tablePage" aria-label="Flash power reference table">
         <div class="table-toolbar">
-          <div class="table-toolbar-heading"><strong>FLASH POWER TABLE</strong><span id="tableISO">ISO 400</span></div>
+          <div class="table-toolbar-heading"><strong>FLASH POWER TABLE</strong><label class="table-iso-picker" for="tableISOSelect">ISO <select id="tableISOSelect" aria-label="Table ISO"><option value="400">400</option></select></label></div>
           <div class="table-controls">
             <div class="quick-group"><span class="quick-label">BEAM</span>
               <div class="segmented compact-beam" id="tableModeControl" role="group" aria-label="Table flash beam">
@@ -72,49 +72,55 @@
               <div class="chips fill-chips" id="tableFillChips" role="group" aria-label="Table flash fill"></div>
             </div>
           </div>
-          <div class="table-hint"><span id="tableRange">Full-power range</span><span>Tap a cell to use</span></div>
+          <div class="table-hint"><span id="tableRange">Full-power range</span><span>Tap cell to select</span></div>
         </div>
         <div id="tableViewport" class="table-viewport" role="region" aria-label="Flash power by aperture and distance" tabindex="0">
           <table id="powerTable" class="power-table"><thead></thead><tbody></tbody></table>
         </div>
       </section>
 
-      <section class="page" id="calibrationPage" aria-labelledby="calTitle">
-        <div class="section-intro"><p class="eyebrow">SEKONIC L-308X</p><h1 id="calTitle">Calibrate your flash.</h1><p>Incident flash readings improve both normal and wide-beam estimates.</p></div>
-        <div class="cal-stats"><div class="stat-card"><small>N · NORMAL</small><strong id="normalCalGN">GN 15.0</strong><span id="normalCalSource">Factory estimate</span></div><div class="stat-card"><small>W · WIDE</small><strong id="wideCalGN">GN 10.6</strong><span id="wideCalSource">Provisional</span></div></div>
+      <section class="page" id="calibrationPage" aria-label="Calibration">
+        <div class="cal-heading"><strong>GUIDE NUMBERS</strong><span>ISO 100 · Full power · m</span></div>
+        <div class="cal-stats gn-editor">
+          <div class="stat-card"><label for="gnNInput">N · NORMAL</label><input id="gnNInput" type="number" inputmode="decimal" step="0.1" min="0.1" max="500" value="15" aria-label="Normal beam guide number"><div class="gn-suggestion"><span id="normalCalSource">No measurements</span><button type="button" id="applyNGN" disabled>Use estimate</button></div></div>
+          <div class="stat-card"><label for="gnWInput">W · WIDE</label><input id="gnWInput" type="number" inputmode="decimal" step="0.1" min="0.1" max="500" value="10.6" aria-label="Wide beam guide number"><div class="gn-suggestion"><span id="wideCalSource">No measurements</span><button type="button" id="applyWGN" disabled>Use estimate</button></div></div>
+        </div>
         <form id="calibrationForm" class="form-card">
-          <div class="card-heading">ADD A MEASUREMENT</div>
+          <div class="card-heading">ADD MEASUREMENT</div>
           <div class="form-grid">
             <label>Beam<select id="calMode"><option value="N">N · Normal</option><option value="W">W · Wide</option></select></label>
-            <label>Film ISO<select id="calISO"><option>100</option><option>200</option><option selected>400</option><option>800</option><option>1600</option></select></label>
+            <label>ISO<select id="calISO"><option>100</option><option>200</option><option selected>400</option><option>800</option><option>1600</option><option>3200</option></select></label>
             <label>Distance (m)<input id="calDistance" type="number" inputmode="decimal" min="0.1" max="100" step="0.1" value="2.0" required></label>
             <label>Flash power<select id="calPower"></select></label>
-            <label>Sekonic aperture (f/)<input id="calAperture" type="number" inputmode="decimal" min="0.7" max="90" step="0.1" placeholder="e.g. 8" required></label>
-            <label>Extra tenths (EV)<select id="calTenths"></select></label>
+            <label>Meter aperture (f/)<input id="calAperture" type="number" inputmode="decimal" min="0.7" max="90" step="0.1" placeholder="5.6" required></label>
+            <label>Meter tenths<select id="calTenths"></select></label>
           </div>
-          <p class="help-text">Example: Sekonic displays f/5.6 with a small 3 → enter 5.6 and +0.3. Use cordless flash mode, incident dome towards flash, and keep ambient negligible.</p>
-          <button type="submit" class="primary-button">Save measurement <span aria-hidden="true">↗</span></button>
+          <div class="cal-preview"><span>Calculated GN</span><strong id="calPreview" aria-live="polite">—</strong></div>
+          <button type="submit" class="primary-button">Save measurement</button>
         </form>
-        <div class="records-heading"><div><strong>MEASUREMENTS</strong><span id="recordCount">0 saved</span></div><button id="clearRecords" type="button" class="text-button">Clear all</button></div>
-        <div id="recordList" class="record-list"><p class="empty">No measurements yet. Calculations use the published GN and a provisional W-mode offset.</p></div>
-        <div class="secondary-card calibration-notes"><div class="card-heading">HOW CALIBRATION WORKS</div><p>Each reading is normalized to ISO 100 at full power to estimate a guide number. The app uses the median of readings for each beam, resisting isolated outliers. It does not model nonlinearity with distance or power.</p><p>Only calibrated modes are labelled measured. Until you measure W mode, its loss relative to N remains an assumption.</p></div>
+        <details id="historyFold" class="fold-card">
+          <summary>Measurements <span id="recordCount">0 saved</span></summary>
+          <div class="fold-content"><button id="clearRecords" type="button" class="text-button">Clear measurements</button><div id="recordList" class="record-list"></div></div>
+        </details>
+        <details class="fold-card">
+          <summary>Data &amp; backup</summary>
+          <div class="fold-content stack-buttons">
+            <button type="button" id="exportData" class="primary-button secondary-action">Export JSON</button>
+            <label class="file-button" for="importData">Import JSON<input type="file" id="importData" accept="application/json,.json" hidden></label>
+            <button type="button" id="resetSettings" class="danger-link">Reset guide numbers</button>
+          </div>
+        </details>
       </section>
 
-      <section class="page" id="settingsPage" aria-labelledby="settingsTitle">
-        <div class="section-intro"><p class="eyebrow">APP SETTINGS</p><h1 id="settingsTitle">Model &amp; data.</h1><p>Everything stays on this device unless you export it.</p></div>
-        <div class="form-card settings-card"><div class="card-heading">THEORETICAL MODEL</div><label for="baseGN">N-mode reference guide number (ISO 100, full power, metres)</label><input id="baseGN" type="number" min="1" max="100" step="0.1" value="15" inputmode="decimal"><div class="control-heading wide-adjust"><label for="wideLoss">Provisional W-mode light loss</label><strong id="wideLossValue">1.0 EV</strong></div><input id="wideLoss" class="range-slider" type="range" min="0" max="3" step="0.333333333333" value="1"><div class="range-ends"><span>0 EV</span><span>3 EV</span></div><p class="help-text">Godox publishes approximately GN15, but no fixed W/N difference. These values apply only where you haven't supplied measurements.</p></div>
-        <div class="form-card settings-card"><div class="card-heading">YOUR DATA</div><p>Calibration records and controls are saved locally. Back up your measurements: iOS can clear website storage.</p><div class="stack-buttons"><button type="button" id="exportData" class="primary-button secondary-action">Export JSON backup ↗</button><label class="file-button" for="importData">Import JSON backup<input type="file" id="importData" accept="application/json,.json" hidden></label><button type="button" id="resetSettings" class="danger-link">Restore default model &amp; controls</button></div></div>
-        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">No account · No analytics · v1.6</p></div>
-      </section>
-    </main>
+          </main>
     <nav class="bottom-nav" aria-label="Main navigation">
       <button class="nav-button selected" type="button" data-page="calculator" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-3 7h7l-6 13 2-9H6z"/></svg><span>Power</span></button>
       <button class="nav-button" type="button" data-page="table"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.8"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg><span>Table</span></button>
       <button class="nav-button" type="button" data-page="calibration"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg><span>Calibrate</span></button>
-      <button class="nav-button" type="button" data-page="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.05.05-2.86 2.86-.05-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1.04 1.56V21h-4v-.04A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.05.05-2.86-2.86.05-.05A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.04H3v-4h.04A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.05-.05 2.86-2.86.05.05A1.7 1.7 0 0 0 8.9 4.6a1.7 1.7 0 0 0 1.04-1.56V3h4v.04A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.05-.05 2.86 2.86-.05.05A1.7 1.7 0 0 0 19.4 8.9a1.7 1.7 0 0 0 1.56 1.04H21v4h-.04A1.7 1.7 0 0 0 19.4 15Z"/></svg><span>Settings</span></button>
-    </nav>
+
+</nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <script type="module" src="./app.js?v=2.0.0"></script>
+  <script type="module" src="./app.js?v=2.1.0"></script>
 </body>
 </html>
