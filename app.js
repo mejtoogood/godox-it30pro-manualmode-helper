@@ -69,11 +69,14 @@ function render(){
   const result=requiredPower({gn100:source.gn,iso,aperture:f,distance:s.distance,fillEV:s.fillEV});
   writePower('powerValue',result.step);
   $('powerDetail').textContent=`${s.mode} beam · ${fmt(s.distance)} m · ISO ${s.iso}`;
-  const msg=$('powerWarning');msg.hidden=result.status==='ok';
-  if(result.status==='too-weak')msg.textContent=`Insufficient flash · ${fmtEV(Math.log2(result.required))} needed`;
-  if(result.status==='too-strong')msg.textContent=`Excess flash · −${(Math.log2((1/128)/result.required)).toFixed(1)} EV needed`;
+  const msg=$('powerWarning');
+  const resultPanel=document.querySelector('.field-result');
+  const hasWarning=result.status!=='ok';
+  msg.hidden=!hasWarning;
+  resultPanel.classList.toggle('has-warning',hasWarning);
+  if(result.status==='too-weak')msg.textContent=`Insufficient · ${fmtEV(Math.log2(result.required))}`;
+  if(result.status==='too-strong')msg.textContent=`Excess · ${fmtEV(-Math.log2((1/128)/result.required))}`;
   $('flashSummary').textContent=s.fillEV===0?'Full flash':`${fmtEV(s.fillEV)} fill`;
-  $('modelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
   $('isoInput').value=String(s.iso);
   $('isoDown').disabled=s.iso<=12;
   $('isoUp').disabled=s.iso>=25600;

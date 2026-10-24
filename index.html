@@ -11,7 +11,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=1.4.0">
+  <link rel="stylesheet" href="./styles.css?v=1.5.0">
   <title>Flash Meter · iT30Pro</title>
 </head>
 <body>
@@ -19,10 +19,12 @@
     <main>
       <section class="page active" id="calculatorPage" aria-label="Flash power calculator">
         <section class="result-panel field-result" aria-live="polite" aria-atomic="true">
-          <div class="result-top"><span>RECOMMENDED POWER</span><span id="modelTag" class="pill">ESTIMATE</span></div>
-          <div class="power-value" id="powerValue">1/16 +0.3</div>
+          <div class="result-top"><span>RECOMMENDED POWER</span></div>
+          <div class="power-display-row">
+            <div class="power-value" id="powerValue">1/16 +0.3</div>
+            <div id="powerWarning" class="warning" hidden></div>
+          </div>
           <div class="power-meta"><span id="powerDetail">N beam · 2.0 m · ISO 400</span><strong id="flashSummary">−1 EV fill</strong></div>
-          <div id="powerWarning" class="warning" hidden></div>
         </section>
         <div class="exposure-grid">
           <div class="exposure-field">
@@ -79,7 +81,7 @@
         <div class="section-intro"><p class="eyebrow">APP SETTINGS</p><h1 id="settingsTitle">Model &amp; data.</h1><p>Everything stays on this device unless you export it.</p></div>
         <div class="form-card settings-card"><div class="card-heading">THEORETICAL MODEL</div><label for="baseGN">N-mode reference guide number (ISO 100, full power, metres)</label><input id="baseGN" type="number" min="1" max="100" step="0.1" value="15" inputmode="decimal"><div class="control-heading wide-adjust"><label for="wideLoss">Provisional W-mode light loss</label><strong id="wideLossValue">1.0 EV</strong></div><input id="wideLoss" class="range-slider" type="range" min="0" max="3" step="0.333333333333" value="1"><div class="range-ends"><span>0 EV</span><span>3 EV</span></div><p class="help-text">Godox publishes approximately GN15, but no fixed W/N difference. These values apply only where you haven't supplied measurements.</p></div>
         <div class="form-card settings-card"><div class="card-heading">YOUR DATA</div><p>Calibration records and controls are saved locally. Back up your measurements: iOS can clear website storage.</p><div class="stack-buttons"><button type="button" id="exportData" class="primary-button secondary-action">Export JSON backup ↗</button><label class="file-button" for="importData">Import JSON backup<input type="file" id="importData" accept="application/json,.json" hidden></label><button type="button" id="resetSettings" class="danger-link">Restore default model &amp; controls</button></div></div>
-        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">No account · No analytics · v1.3</p></div>
+        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">No account · No analytics · v1.5</p></div>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Main navigation">
@@ -89,6 +91,6 @@
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <script type="module" src="./app.js?v=1.4.0"></script>
+  <script type="module" src="./app.js?v=1.5.0"></script>
 </body>
 </html>

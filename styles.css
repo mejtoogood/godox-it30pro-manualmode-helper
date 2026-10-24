@@ -64,3 +64,11 @@
 /* v1.4: three destinations, and single-line power limit notices. */
 .nav-button{width:33.3333%;}
 .field-result .warning{white-space:nowrap;font-size:clamp(11px,3.15vw,13px);line-height:1.35;padding:9px 10px;}
+
+/* v1.5: warning sits beside the power display, never beneath it. */
+.field-result .power-display-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:75px;min-width:0;}
+.field-result .power-display-row .power-value{min-width:0;flex:0 1 auto;}
+.field-result .power-display-row .warning{display:block;flex:0 0 auto;margin:0;padding:0;border:0;background:transparent;box-shadow:none;color:#ffd2a6;text-align:right;white-space:nowrap;font-size:clamp(10px,2.7vw,12px);line-height:1.25;}
+.field-result .power-display-row .warning[hidden]{display:none;}
+.field-result.has-warning .power-value{font-size:clamp(30px,10vw,50px);}
+@media(max-width:360px){.field-result .power-display-row{gap:4px}.field-result .power-display-row .warning{font-size:10px}}
