@@ -1,7 +1,7 @@
-import {DEFAULT_GN,FSTOP_LABELS,FSTOP_VALUES,clamp,powerFraction,powerLabel,requiredPower,rangeFor,normalizedGN,resolveGN,totalAmbientFlashEV} from './core.mjs';
+import {DEFAULT_GN,FSTOP_LABELS,FSTOP_VALUES,clamp,powerFraction,powerLabel,requiredPower,rangeFor,normalizedGN,resolveGN} from './core.mjs';
 
 const STORE='flash-meter-pwa-v1';
-const defaults={iso:400,apertureIndex:12,distance:2,mode:'N',fillEV:-1,rangeStep:9,ambientAperture:null,baseGN:DEFAULT_GN,wideLossEV:1,records:[]};
+const defaults={iso:400,apertureIndex:12,distance:2,mode:'N',fillEV:-1,rangeStep:9,baseGN:DEFAULT_GN,wideLossEV:1,records:[]};
 const $=id=>document.getElementById(id);
 const validNumber=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 const fmt=(n,d=1)=>Number(n).toFixed(d);
@@ -25,7 +25,6 @@ function validateState(input){
   if(input.mode==='W'||input.mode==='N')s.mode=input.mode;
   if(Number.isInteger(input.fillEV)&&input.fillEV<=0&&input.fillEV>=-4)s.fillEV=input.fillEV;
   if(Number.isInteger(input.rangeStep)&&input.rangeStep>=0&&input.rangeStep<=21)s.rangeStep=input.rangeStep;
-  if(input.ambientAperture===null||validNumber(input.ambientAperture,.7,90))s.ambientAperture=input.ambientAperture;
   if(validNumber(input.baseGN,1,100))s.baseGN=input.baseGN;
   if(validNumber(input.wideLossEV,0,3.01))s.wideLossEV=input.wideLossEV;
   if(Array.isArray(input.records))s.records=input.records.filter(validateRecord).slice(0,1000).map(r=>({
@@ -36,14 +35,11 @@ function validateState(input){
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch{toast('Local storage is unavailable; export measurements to keep them.')}}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('show'),3500)}
 function init(){
-  const isoValues=[100,200,400,800,1600,3200];
-  $('isoChips').innerHTML=isoValues.map(v=>`<button type="button" data-iso="${v}" aria-pressed="false">${v}</button>`).join('');
   $('fillChips').innerHTML=[0,-1,-2,-3,-4].map(v=>`<button type="button" data-fill="${v}" aria-pressed="false">${v===0?'0':`−${Math.abs(v)}`}</button>`).join('');
   $('apertureSelect').innerHTML=FSTOP_LABELS.map((f,i)=>`<option value="${i}">f/${f}</option>`).join('');
   $('calPower').innerHTML=Array.from({length:22},(_,i)=>`<option value="${i}">${powerLabel(i)}</option>`).join('');
   $('calTenths').innerHTML=Array.from({length:10},(_,i)=>`<option value="${i}">+${(i/10).toFixed(1)} EV</option>`).join('');
   $('calPower').value='6';
-  $('isoChips').addEventListener('click',e=>{const v=Number(e.target.closest('[data-iso]')?.dataset.iso);if(v){state.iso=v;changed()}});
   $('fillChips').addEventListener('click',e=>{const v=e.target.closest('[data-fill]')?.dataset.fill;if(v!==undefined){state.fillEV=Number(v);changed()}});
   $('modeControl').addEventListener('click',e=>{const mode=e.target.closest('[data-mode]')?.dataset.mode;if(mode==='N'||mode==='W'){state.mode=mode;changed()}});
   $('apertureSelect').addEventListener('change',e=>{state.apertureIndex=Number(e.target.value);changed()});
@@ -52,8 +48,8 @@ function init(){
   $('distanceSlider').addEventListener('input',e=>{state.distance=Number(e.target.value);changed()});
   $('distanceInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,.1,100)){state.distance=x;changed()}else{render();toast('Distance must be 0.1–100 m.')}});
   $('isoInput').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,12,25600)){state.iso=x;changed()}else{render();toast('ISO must be between 12 and 25,600.')}});
-  $('ambientAperture').addEventListener('change',e=>{const v=e.target.value.trim();const x=Number(v);if(!v){state.ambientAperture=null;changed()}else if(validNumber(x,.7,90)){state.ambientAperture=x;changed()}else{render();toast('Enter an ambient aperture between f/0.7 and f/90.')}});
-  $('clearAmbient').addEventListener('click',()=>{state.ambientAperture=null;changed()});
+  $('isoDown').addEventListener('click',()=>{state.iso=Math.max(12,Math.round(state.iso/2));changed()});
+  $('isoUp').addEventListener('click',()=>{state.iso=Math.min(25600,state.iso*2);changed()});
   $('rangePower').addEventListener('input',e=>{state.rangeStep=Number(e.target.value);changed()});
   $('baseGN').addEventListener('change',e=>{const x=Number(e.target.value);if(validNumber(x,1,100)){state.baseGN=x;changed()}else{render();toast('Guide number must be between 1 and 100.')}});
   $('wideLoss').addEventListener('input',e=>{state.wideLossEV=clamp(Math.round(Number(e.target.value)*3)/3,0,3);changed()});
@@ -81,18 +77,14 @@ function render(){
   $('flashSummary').textContent=s.fillEV===0?'Full flash':`${fmtEV(s.fillEV)} fill`;
   $('modelTag').textContent=source.source==='measured'?'CALIBRATED':'ESTIMATE';
   $('isoInput').value=String(s.iso);
-  document.querySelectorAll('[data-iso]').forEach(b=>{const on=Number(b.dataset.iso)===iso;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
+  $('isoDown').disabled=s.iso<=12;
+  $('isoUp').disabled=s.iso>=25600;
   $('apertureSelect').value=String(s.apertureIndex);
   $('apertureDown').disabled=s.apertureIndex===0;
   $('apertureUp').disabled=s.apertureIndex===FSTOP_VALUES.length-1;
   $('distanceSlider').value=String(clamp(s.distance,.5,10));$('distanceInput').value=String(s.distance);
   document.querySelectorAll('[data-mode]').forEach(b=>{const on=b.dataset.mode===s.mode;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
   document.querySelectorAll('[data-fill]').forEach(b=>{const on=Number(b.dataset.fill)===s.fillEV;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
-  $('ambientAperture').value=s.ambientAperture??'';
-  if(s.ambientAperture){
-    const ambientEV=2*Math.log2(s.ambientAperture/f),combined=totalAmbientFlashEV({ambientAperture:s.ambientAperture,shootAperture:f,fillEV:s.fillEV});
-    $('ambientSummary').textContent=`Ambient ${fmtEV(ambientEV)} + flash ${fmtEV(s.fillEV)} → combined ${fmtEV(combined)} relative to nominal exposure, if both illuminate the metered subject.`;
-  }else $('ambientSummary').textContent="Ambient contribution isn't included until you enter a reading.";
   $('rangePower').value=String(s.rangeStep);$('rangePowerValue').textContent=powerLabel(s.rangeStep);$('rangePowerLabel').textContent=powerLabel(s.rangeStep);
   $('rangeAperture').textContent=`f/${label}`;
   const range=rangeFor({gn100:source.gn,iso,aperture:f,fillEV:s.fillEV,powerStep:s.rangeStep});

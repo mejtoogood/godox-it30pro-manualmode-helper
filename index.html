@@ -11,7 +11,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=1.2.0">
+  <link rel="stylesheet" href="./styles.css?v=1.3.0">
   <title>Flash Meter · iT30Pro</title>
 </head>
 <body>
@@ -27,7 +27,11 @@
         <div class="exposure-grid">
           <div class="exposure-field">
             <label for="isoInput">FILM ISO</label>
-            <input id="isoInput" type="number" min="12" max="25600" step="1" inputmode="numeric" value="400" aria-label="Film ISO">
+            <div class="aperture-stepper iso-stepper">
+              <button type="button" id="isoDown" aria-label="Decrease ISO by one stop">−</button>
+              <input id="isoInput" type="number" min="12" max="25600" step="1" inputmode="numeric" value="400" aria-label="Film ISO">
+              <button type="button" id="isoUp" aria-label="Increase ISO by one stop">+</button>
+            </div>
           </div>
           <div class="exposure-field">
             <label for="apertureSelect">APERTURE</label>
@@ -38,7 +42,6 @@
             </div>
           </div>
         </div>
-        <div class="iso-presets chips" id="isoChips" aria-label="Common film speeds"></div>
         <div class="distance-block">
           <div class="distance-head"><label for="distanceInput">FLASH DISTANCE</label><div class="distance-edit"><input id="distanceInput" aria-label="Exact flash-to-subject distance in metres" type="number" inputmode="decimal" min="0.1" max="100" step="0.1" value="2"><span>m</span></div></div>
           <input class="range-slider" id="distanceSlider" aria-label="Flash-to-subject distance in metres" type="range" min="0.5" max="10" step="0.1" value="2">
@@ -48,14 +51,7 @@
           <div class="quick-group"><span class="quick-label">BEAM</span><div class="segmented compact-beam" id="modeControl" role="group" aria-label="Flash beam"><button type="button" class="selected" data-mode="N" aria-pressed="true">N</button><button type="button" data-mode="W" aria-pressed="false">W</button></div></div>
           <div class="quick-group"><span class="quick-label">FLASH FILL (EV)</span><div class="chips fill-chips" id="fillChips" role="group" aria-label="Flash contribution in stops"></div></div>
         </div>
-        <details class="ambient-expander" id="ambientCard">
-          <summary>Ambient exposure check <span>Optional</span></summary>
-          <div class="ambient-content">
-            <p>Enter the Sekonic's ambient aperture at the same shutter speed as the FE.</p>
-            <div class="ambient-controls"><label for="ambientAperture">Meter reads</label><div class="inline-input"><span>f/</span><input id="ambientAperture" type="number" step="0.1" min="0.7" max="90" inputmode="decimal" placeholder="5.6"></div><button type="button" class="text-button" id="clearAmbient">Clear</button></div>
-            <p class="ambient-result" id="ambientSummary">Ambient contribution isn't included until you enter a reading.</p>
-          </div>
-        </details>
+
       </section>
 
       <section class="page" id="rangePage" aria-labelledby="rangeTitle">
@@ -90,7 +86,7 @@
         <div class="section-intro"><p class="eyebrow">APP SETTINGS</p><h1 id="settingsTitle">Model &amp; data.</h1><p>Everything stays on this device unless you export it.</p></div>
         <div class="form-card settings-card"><div class="card-heading">THEORETICAL MODEL</div><label for="baseGN">N-mode reference guide number (ISO 100, full power, metres)</label><input id="baseGN" type="number" min="1" max="100" step="0.1" value="15" inputmode="decimal"><div class="control-heading wide-adjust"><label for="wideLoss">Provisional W-mode light loss</label><strong id="wideLossValue">1.0 EV</strong></div><input id="wideLoss" class="range-slider" type="range" min="0" max="3" step="0.333333333333" value="1"><div class="range-ends"><span>0 EV</span><span>3 EV</span></div><p class="help-text">Godox publishes approximately GN15, but no fixed W/N difference. These values apply only where you haven't supplied measurements.</p></div>
         <div class="form-card settings-card"><div class="card-heading">YOUR DATA</div><p>Calibration records and controls are saved locally. Back up your measurements: iOS can clear website storage.</p><div class="stack-buttons"><button type="button" id="exportData" class="primary-button secondary-action">Export JSON backup ↗</button><label class="file-button" for="importData">Import JSON backup<input type="file" id="importData" accept="application/json,.json" hidden></label><button type="button" id="resetSettings" class="danger-link">Restore default model &amp; controls</button></div></div>
-        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">No account · No analytics · v1.2</p></div>
+        <div class="secondary-card"><div class="card-heading">ABOUT THIS CALCULATOR</div><p>Flash-only exposure is calculated with <strong>GN = aperture × distance</strong>; power and ISO scale with their square roots. This assumes conventional direct flash and the film-speed exposure relationship. Roundoff is to the nearest ⅓ EV on the iT30Pro.</p><p>The Nikon FE uses conventional X-sync at 1/125 s or slower. There is no film TTL metering or HSS in this setup. This tool cannot meter reflected light or infer flash-to-subject distance automatically.</p><p class="muted fineprint">No account · No analytics · v1.3</p></div>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Main navigation">
@@ -101,6 +97,6 @@
     </nav>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <script type="module" src="./app.js?v=1.2.0"></script>
+  <script type="module" src="./app.js?v=1.3.0"></script>
 </body>
 </html>

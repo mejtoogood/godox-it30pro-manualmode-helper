@@ -44,7 +44,3 @@ export function resolveGN(records,mode,baseGN=DEFAULT_GN,wideLossEV=1){
   if(mode==='N')return {gn:gnN,source:nCal===null?'manufacturer':'measured',samples:records.filter(r=>r.mode==='N').length};
   return {gn:gnN*Math.pow(2,-wideLossEV/2),source:nCal===null?'provisional':'derived',samples:0};
 }
-export function totalAmbientFlashEV({ambientAperture,shootAperture,fillEV}){
-  if(!(ambientAperture>0))return null;
-  return Math.log2((ambientAperture/shootAperture)**2+Math.pow(2,fillEV));
-}
